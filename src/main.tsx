@@ -4,11 +4,12 @@ import './index.css'
 import { Provider } from 'react-redux'
 import store from './store'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import App from './App'
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: 'App'
+    element: <App />
   }
 ])
 

@@ -22,9 +22,9 @@
     }
   },
   "dependencies": {
-    "@vinderman/ui-icons": "file:infinitum-ui-icons-1.0.1.tgz",
     "@vinderman/shared": "file:infinitum-ui-shared-1.0.0.tgz",
-    "@vinderman/ui-components": "file:infinitum-frontend-ui-components-1.3.0.tgz",
+    "@vinderman/ui-icons": "file:infinitum-ui-icons-1.0.1.tgz",
+    "@vinderman/ui-components": "file:infinitum-ui-ui-components-1.7.1.tgz",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.16.0",
@@ -33,7 +33,6 @@
   },
   "devDependencies": {
     "@types/react": "^18.0.24",
-    "@types/react-color": "^3.0.7",
     "@types/react-dom": "^18.0.8",
     "@typescript-eslint/eslint-plugin": "^5.45.1",
     "@vitejs/plugin-react": "^4.1.0",

@@ -1,6 +1,6 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query'
-import { apiClient } from '../../../utils/helpers/apiClient'
-import { RegisterDto } from '../../../utils/services/api/Api'
+import { apiClient } from '../../../shared/helpers/apiClient'
+import { RegisterDto } from '../../../shared/api/Api'
 
 export default function useRegisterUser(): UseMutationResult<
   boolean,

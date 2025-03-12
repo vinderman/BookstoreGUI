@@ -3,9 +3,10 @@ import {
   AuthByLoginDto,
   AuthByLoginResponseDtoSuccessResponse,
   ErrorResponse
-} from '../../../utils/services/api/Api'
-import { apiClient } from '../../../utils/helpers/apiClient'
+} from '../../../shared/api/Api'
+import { apiClient } from '../../../shared/helpers/apiClient'
 import { AxiosError } from 'axios'
+import { setAuthData } from '@/entities/auth/auth.domain'
 
 export default function useLoginUser(): UseMutationResult<
   AuthByLoginResponseDtoSuccessResponse,
@@ -17,6 +18,11 @@ export default function useLoginUser(): UseMutationResult<
       const response = await apiClient.authLoginCreate(requestData)
 
       return response.data
+    },
+    onSuccess: (data) => {
+      if (data.data) {
+        setAuthData(data.data)
+      }
     }
   })
 }

@@ -1,8 +1,8 @@
 import { createBrowserRouter } from 'react-router-dom'
-import BaseLayout from './components/layout/BaseLayout'
 import LoginPage from './pages/LoginPage'
 import RegistrationPage from './pages/RegistrationPage'
-import UnloggedLayout from './components/layout/UnloggedLayout'
+import BaseLayout from './shared/ui/layout/BaseLayout'
+import UnloggedLayout from './shared/ui/layout/UnloggedLayout'
 
 const router = createBrowserRouter([
   {

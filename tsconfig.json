@@ -15,7 +15,13 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"],
+      "Shared/*": ["./src/shared/*"],
+      "Entities/*": ["./src/entities/*"],
+      "Features/*": ["./src/features/*"]
+    }
   },
   "include": ["scripts", "src", "node_modules/@types", "vite.config.ts"]
 }

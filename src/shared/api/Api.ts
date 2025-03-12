@@ -16,17 +16,15 @@ export interface AuthByLoginDto {
 
 export interface AuthByLoginResponseDto {
   accessToken: string
-  firstName: string
-  lastName: string
-  middleName?: string | null
-  email?: string | null
-  roleName: string
+  refreshToken: string
+  /** @format date-time */
+  expiresAt: string
 }
 
 export interface AuthByLoginResponseDtoSuccessResponse {
   success: boolean
   message: string
-  data?: AuthByLoginResponseDto
+  data: AuthByLoginResponseDto
 }
 
 export interface AuthorDto {
@@ -40,6 +38,7 @@ export interface BookDto {
   id: string
   title: string
   description: string
+  file?: FileDto
   /** @format uuid */
   authorId: string
 }
@@ -59,6 +58,11 @@ export interface CreateBookDto {
   description: string
   /** @format uuid */
   authorId: string
+  genreIds: string[]
+}
+
+export interface CreateGenreDto {
+  title: string
 }
 
 export interface ErrorResponse {
@@ -66,6 +70,30 @@ export interface ErrorResponse {
   message: string
   description: string
   errors?: Record<string, string[] | null>
+}
+
+export interface FileDto {
+  fileId: string
+  fileName: string
+}
+
+export interface GenreDto {
+  /** @format uuid */
+  id: string
+  name: string
+}
+
+export interface RefreshTokenResponseDto {
+  accessToken: string
+  refreshToken: string
+  /** @format date-time */
+  expiresAt: string
+}
+
+export interface RefreshTokenResponseDtoSuccessResponse {
+  success: boolean
+  message: string
+  data: RefreshTokenResponseDto
 }
 
 export interface RegisterDto {
@@ -85,19 +113,24 @@ export interface RoleDto {
   name: string
 }
 
-import type {
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosResponse,
-  HeadersDefaults,
-  ResponseType
-} from 'axios'
+export interface UserDto {
+  /** @format uuid */
+  id: string
+  login: string
+  email?: string | null
+  firstName: string
+  lastName: string
+  middleName?: string | null
+  /** @format uuid */
+  roleId: string
+}
+
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, HeadersDefaults, ResponseType } from 'axios'
 import axios from 'axios'
 
 export type QueryParamsType = Record<string | number, any>
 
-export interface FullRequestParams
-  extends Omit<AxiosRequestConfig, 'data' | 'params' | 'url' | 'responseType'> {
+export interface FullRequestParams extends Omit<AxiosRequestConfig, 'data' | 'params' | 'url' | 'responseType'> {
   /** set parameter to `true` for call `securityWorker` for this request */
   secure?: boolean
   /** request path */
@@ -112,13 +145,9 @@ export interface FullRequestParams
   body?: unknown
 }
 
-export type RequestParams = Omit<
-  FullRequestParams,
-  'body' | 'method' | 'query' | 'path'
->
+export type RequestParams = Omit<FullRequestParams, 'body' | 'method' | 'query' | 'path'>
 
-export interface ApiConfig<SecurityDataType = unknown>
-  extends Omit<AxiosRequestConfig, 'data' | 'cancelToken'> {
+export interface ApiConfig<SecurityDataType = unknown> extends Omit<AxiosRequestConfig, 'data' | 'cancelToken'> {
   securityWorker?: (
     securityData: SecurityDataType | null
   ) => Promise<AxiosRequestConfig | void> | AxiosRequestConfig | void
@@ -140,16 +169,8 @@ export class HttpClient<SecurityDataType = unknown> {
   private secure?: boolean
   private format?: ResponseType
 
-  constructor({
-    securityWorker,
-    secure,
-    format,
-    ...axiosConfig
-  }: ApiConfig<SecurityDataType> = {}) {
-    this.instance = axios.create({
-      ...axiosConfig,
-      baseURL: axiosConfig.baseURL || ''
-    })
+  constructor({ securityWorker, secure, format, ...axiosConfig }: ApiConfig<SecurityDataType> = {}) {
+    this.instance = axios.create({ ...axiosConfig, baseURL: axiosConfig.baseURL || '' })
     this.secure = secure
     this.format = format
     this.securityWorker = securityWorker
@@ -159,10 +180,7 @@ export class HttpClient<SecurityDataType = unknown> {
     this.securityData = data
   }
 
-  protected mergeRequestParams(
-    params1: AxiosRequestConfig,
-    params2?: AxiosRequestConfig
-  ): AxiosRequestConfig {
+  protected mergeRequestParams(params1: AxiosRequestConfig, params2?: AxiosRequestConfig): AxiosRequestConfig {
     const method = params1.method || (params2 && params2.method)
 
     return {
@@ -170,11 +188,7 @@ export class HttpClient<SecurityDataType = unknown> {
       ...params1,
       ...(params2 || {}),
       headers: {
-        ...((method &&
-          this.instance.defaults.headers[
-            method.toLowerCase() as keyof HeadersDefaults
-          ]) ||
-          {}),
+        ...((method && this.instance.defaults.headers[method.toLowerCase() as keyof HeadersDefaults]) || {}),
         ...(params1.headers || {}),
         ...((params2 && params2.headers) || {})
       }
@@ -195,15 +209,11 @@ export class HttpClient<SecurityDataType = unknown> {
     }
     return Object.keys(input || {}).reduce((formData, key) => {
       const property = input[key]
-      const propertyContent: any[] =
-        property instanceof Array ? property : [property]
+      const propertyContent: any[] = property instanceof Array ? property : [property]
 
       for (const formItem of propertyContent) {
         const isFileType = formItem instanceof Blob || formItem instanceof File
-        formData.append(
-          key,
-          isFileType ? formItem : this.stringifyFormItem(formItem)
-        )
+        formData.append(key, isFileType ? formItem : this.stringifyFormItem(formItem))
       }
 
       return formData
@@ -227,21 +237,11 @@ export class HttpClient<SecurityDataType = unknown> {
     const requestParams = this.mergeRequestParams(params, secureParams)
     const responseFormat = format || this.format || undefined
 
-    if (
-      type === ContentType.FormData &&
-      body &&
-      body !== null &&
-      typeof body === 'object'
-    ) {
+    if (type === ContentType.FormData && body && body !== null && typeof body === 'object') {
       body = this.createFormData(body as Record<string, unknown>)
     }
 
-    if (
-      type === ContentType.Text &&
-      body &&
-      body !== null &&
-      typeof body !== 'string'
-    ) {
+    if (type === ContentType.Text && body && body !== null && typeof body !== 'string') {
       body = JSON.stringify(body)
     }
 
@@ -312,6 +312,29 @@ export class Api<SecurityDataType extends unknown> {
     /**
      * No description
      *
+     * @tags Auth
+     * @name AuthRefreshtokenCreate
+     * @request POST:/api/auth/refreshtoken
+     * @secure
+     */
+    authRefreshtokenCreate: (
+      query?: {
+        refreshToken?: string
+      },
+      params: RequestParams = {}
+    ) =>
+      this.http.request<RefreshTokenResponseDtoSuccessResponse, ErrorResponse>({
+        path: `/api/auth/refreshtoken`,
+        method: 'POST',
+        query: query,
+        secure: true,
+        format: 'json',
+        ...params
+      }),
+
+    /**
+     * No description
+     *
      * @tags Authors
      * @name AuthorsCreate
      * @request POST:/api/authors
@@ -320,6 +343,42 @@ export class Api<SecurityDataType extends unknown> {
     authorsCreate: (data: CreateAuthorDto, params: RequestParams = {}) =>
       this.http.request<AuthorDto, any>({
         path: `/api/authors`,
+        method: 'POST',
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        format: 'json',
+        ...params
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Books
+     * @name BooksList
+     * @request GET:/api/books
+     * @secure
+     */
+    booksList: (params: RequestParams = {}) =>
+      this.http.request<BookDto[], any>({
+        path: `/api/books`,
+        method: 'GET',
+        secure: true,
+        format: 'json',
+        ...params
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Books
+     * @name BooksCreate
+     * @request POST:/api/books
+     * @secure
+     */
+    booksCreate: (data: CreateBookDto, params: RequestParams = {}) =>
+      this.http.request<BookDto, any>({
+        path: `/api/books`,
         method: 'POST',
         body: data,
         secure: true,
@@ -349,13 +408,74 @@ export class Api<SecurityDataType extends unknown> {
      * No description
      *
      * @tags Books
-     * @name BooksCreate
-     * @request POST:/api/books
+     * @name BooksFileCreate
+     * @request POST:/api/books/{id}/file
      * @secure
      */
-    booksCreate: (data: CreateBookDto, params: RequestParams = {}) =>
-      this.http.request<BookDto, any>({
-        path: `/api/books`,
+    booksFileCreate: (
+      id: string,
+      data: {
+        /** @format binary */
+        file: File
+        fileName: string
+      },
+      params: RequestParams = {}
+    ) =>
+      this.http.request<boolean, any>({
+        path: `/api/books/${id}/file`,
+        method: 'POST',
+        body: data,
+        secure: true,
+        type: ContentType.FormData,
+        format: 'json',
+        ...params
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Books
+     * @name BooksFileDetail
+     * @request GET:/api/books/{id}/file
+     * @secure
+     */
+    booksFileDetail: (id: string, params: RequestParams = {}) =>
+      this.http.request<boolean, any>({
+        path: `/api/books/${id}/file`,
+        method: 'GET',
+        secure: true,
+        format: 'json',
+        ...params
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Genre
+     * @name GenreList
+     * @request GET:/api/genre
+     * @secure
+     */
+    genreList: (params: RequestParams = {}) =>
+      this.http.request<GenreDto[], any>({
+        path: `/api/genre`,
+        method: 'GET',
+        secure: true,
+        format: 'json',
+        ...params
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Genre
+     * @name GenreCreate
+     * @request POST:/api/genre
+     * @secure
+     */
+    genreCreate: (data: CreateGenreDto, params: RequestParams = {}) =>
+      this.http.request<boolean, any>({
+        path: `/api/genre`,
         method: 'POST',
         body: data,
         secure: true,
@@ -375,6 +495,23 @@ export class Api<SecurityDataType extends unknown> {
     rolesList: (params: RequestParams = {}) =>
       this.http.request<RoleDto[], any>({
         path: `/api/roles`,
+        method: 'GET',
+        secure: true,
+        format: 'json',
+        ...params
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Users
+     * @name UsersCurrentuserList
+     * @request GET:/api/users/currentuser
+     * @secure
+     */
+    usersCurrentuserList: (params: RequestParams = {}) =>
+      this.http.request<UserDto, any>({
+        path: `/api/users/currentuser`,
         method: 'GET',
         secure: true,
         format: 'json',

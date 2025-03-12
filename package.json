@@ -12,7 +12,7 @@
     "prettier-check": "prettier --check src/**/*.{ts,tsx}",
     "prettier-fix": "prettier --write src/**/*.{ts,tsx}",
     "prepare": "husky install",
-    "swagger-build-client": "swagger-typescript-api -p http://localhost:5000/swagger/v1/swagger.json -o ./src/utils/services/api --single-http-client --axios"
+    "swagger-build-client": "swagger-typescript-api -p http://localhost:5001/swagger/v1/swagger.json -o ./src/utils/services/api --extract-response-body --single-http-client --axios"
   },
   "lint-staged": {
     "*.{tsx,ts}": [
@@ -54,7 +54,7 @@
     "prettier": "2.8.3",
     "sass": "^1.68.0",
     "swagger-typescript-api": "^13.0.23",
-    "typescript": "^4.9.3",
+    "typescript": "^5.7",
     "vite": "^4.4.9"
   }
 }
